@@ -20,7 +20,19 @@ Created on Wed Feb 13 19:38:53 2019
 
 
 
-CODE
+import sys
+import numpy as np # gestion des matrices
+import pandas as pd # gestion et manipulation des dataframes
+import os # reading the input files we have access to
+import matplotlib.pyplot as plt #pour faire de visualisation de données
+import seaborn as sns #realisation des pairplots
+from sklearn import preprocessing #standarization des valeurs 
+from sklearn import linear_model #estimation du modele
+from sklearn.metrics import mean_squared_error #prediction du modele
+
+#Pour le grands volums des données "Big Data"
+import dask 
+from dask_glm.estimators import LenearRegression
 
 
 
