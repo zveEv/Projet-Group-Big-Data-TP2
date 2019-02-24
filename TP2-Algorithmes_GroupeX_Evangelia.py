@@ -17,8 +17,7 @@ Created on Wed Feb 13 19:38:53 2019
 #
 # QUESTION 0 - IMPORTATION DES PACKAGES ET LIBRAIRIES UTILISEES PAR LA SUITE
 # 
-
-
+! pip install "dask[complete]" 
 
 import sys
 import numpy as np # gestion des matrices
@@ -29,13 +28,12 @@ import seaborn as sns #realisation des pairplots
 from sklearn import preprocessing #standarization des valeurs 
 from sklearn import linear_model #estimation du modele
 from sklearn.metrics import mean_squared_error #prediction du modele
-
+from dask import dataframe as dd
 #Pour le grands volums des données "Big Data"
 import dask 
-from dask_glm.estimators import LenearRegression
+from dask_glm.estimators import LinearRegression
 
-
-
+import dask.dataframes as dd #pour importer un fichier big data, ca veut dire avec taille en Gigabytes.
 
 #
 # QUESTION 1 - IMPORT DU JEU DE DONNEES
@@ -45,7 +43,9 @@ from dask_glm.estimators import LenearRegression
 ### Q1.1 - Indiquer le dossier et le fichier cible
 
 
-CODE
+dossier_train='C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train/train.csv'
+dossier_trainEch='C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train_echantillon.csv'
+
 
 
 
@@ -55,12 +55,19 @@ CODE
 
 # ---------- Utiliser une librairie usuelle (version de fichier échantillonnée)
 
-CODE
+trainEch_df =  pd.read_csv(dossier_trainEch)
+trainEch_df.dtypes
 
-
+test_trainEch_df =  pd.read_csv(dossier_trainEch, nrows=10000)
+test_trainEch_df.dtypes
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory) (version complète du fichier)
 
-CODE
+train_df = dd.read_csv(dossier_train)
+train_df.dtypes
+
+
+test_train_df =  dd.read_csv(dossier_train).head(n=20000)
+test_train_df.dtypes
 
 
 
@@ -82,65 +89,91 @@ CODE
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+#nombre de valeurs manquants par variable
+print(trainEch_df.isnull().sum())
+trainEch_df_clean = trainEch_df.dropna(how = 'any', axis = 'rows')
 
-# ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+print(test_trainEch_df.isnull().sum())
+test_trainEch_df_clean = test_trainEch_df.dropna(how = 'any', axis = 'rows')
+# ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)!!!!!
+print(test_train_df.isnull().sum())
+test_train_clean = test_train_df.dropna(how = 'any', axis = 'rows')
 
-CODE
-
-
+#je ne peux pas trouver comment supprimer valeurs manquants avec dask.
 
 # Ne garder que les variables de géolocalisation (pour le jeu de données en entrée) et
 # la variable "fare_amount" pour la sortie
 
 
 # ---------- Utiliser une librairie usuelle
-
-CODE
+test_trainEch_df_clean=test_trainEch_df_clean.drop(['key','pickup_datetime','passenger_count'], axis=1)
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
-
-CODE
+#le meme que librairie usuelle
+test_train_df_clean=test_train_df_clean.drop(['key','pickup_datetime','passenger_count'], axis=1)
 
 
 # Obtenir les caractéristiques statistiques de base des variables d'entrée et de sortie
 # (par exemple, min, moyenne, mdéiane, max) et filter les valeurs aberrantes
 
-
+#le z-value est -20 pour les variables de longitude et 20 pour les variables de latitude
 # ---------- Utiliser une librairie usuelle
 
-CODE
+test_trainEch_df_clean.describe()
 
+#1er solution
+test_trainEch_df_clean = test_trainEch_df_clean[(test_trainEch_df_clean.dropoff_longitude < -20) & (test_trainEch_df_clean.pickup_longitude < -20) 
+& (test_trainEch_df_clean.dropoff_latitude > 20) & (test_trainEch_df_clean.pickup_latitude > 20)]
+
+#2eme solution
+def outliers_iqr(ys):
+    quartile_1, quartile_3 = np.percentile(ys, [25, 75])
+    iqr = quartile_3 - quartile_1
+    lower_bound = quartile_1 - (iqr * 1.5)
+    upper_bound = quartile_3 + (iqr * 1.5)
+    return np.where((ys > upper_bound) | (ys < lower_bound))
+
+for var in list(test_trainEch_df_clean.columns.values):
+    test_trainEch_df_clean= test_trainEch_df_clean.loc[~test_trainEch_df_clean[var].isin(list(outliers_iqr(test_trainEch_df_clean[var])))]
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+test_train_df_clean.describe()
 
-
-# Visualiser les distributions des variables d'entrée et de sortie (histogramme, pairplot)
+#2eme solution
+for var in list(test_train_df_clean.columns.values):
+    test_train_df_clean= test_train_df_clean.loc[~test_train_df_clean[var].isin(list(outliers_iqr(test_train_df_clean[var])))]
 
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+sns.pairplot(test_trainEch_df_clean)
+variables=list(test_trainEch_df_clean.columns.values)
+for var in variables:
+        test_trainEch_df_clean[var].plot.hist()
+        plt.title(var)
+        plt.show()
 
-
-
-
-
+# ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+sns.pairplot(test_train_df_clean)
+for var in variables:
+        test_train_df_clean[var].plot.hist()
+        plt.title(var)
+        plt.show()
 
 # Séparer la variable à prédire ("fare_amount") des autres variables d'entrée
 # Créer un objet avec variables d'entrée et un objet avec valeurs de sortie (i.e. "fare_amount")
 
-
+inputvar=["pickup_longitude","pickup_latitude","dropoff_longitude","dropoff_latitude"]
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+
+X,y = test_trainEch_df_clean[inputvar],test_trainEch_df_clean["fare_amount"]
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
 
-CODE
+X_big,y_big = test_train_df_clean[inputvar],test_train_df_clean["fare_amount"]
 
 
 # Standardiser la matrice d'entrée et les vecteurs de sortie (créer un nouvel objet)
@@ -148,13 +181,15 @@ CODE
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+X_scaled=preprocessing.scale(X)
+y_scaled=preprocessing.scale(y)
 
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
 
-CODE
+X_big_scaled=preprocessing.scale(X_big)
+y_big_scaled=preprocessing.scale(y_big)
 
 
 
