@@ -18,9 +18,8 @@ Created on Wed Feb 13 19:38:53 2019
 # QUESTION 0 - IMPORTATION DES PACKAGES ET LIBRAIRIES UTILISEES PAR LA SUITE
 # 
 
-
-
-CODE
+install.packages('bigglm')
+library(bigglm)
 
 
 
@@ -32,8 +31,12 @@ CODE
 
 ### Q1.1 - Indiquer le dossier et le fichier cible
 
+dossier1<-"C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/"
+fichier1<-'train_echantillon.csv'
 
-CODE
+dossier2<-"C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train/"
+fichier2<-'train.csv'
+
 
 
 
@@ -43,16 +46,12 @@ CODE
 
 # ---------- Utiliser une librairie usuelle (version de fichier échantillonnée)
 
-CODE
+TrainEch=read.csv('C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train_echantillon.csv',header = TRUE, nrows=10000)
 
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory) (version complète du fichier)
 
-CODE
-
-
-
-
+Train=read.csv('C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train/train.csv',header = TRUE, nrows=20000)
 
 
 
@@ -69,12 +68,13 @@ CODE
 
 
 # ---------- Utiliser une librairie usuelle
+Pas besoin sur R puisque, ca se fait automatiquement avec la standarization des donnees avec la fonction scale()
 
-CODE
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+Pas besoin sur R puisque, ca se fait automatiquement avec la standarization des donnees avec la fonction scale()
+
 
 
 
@@ -83,12 +83,12 @@ CODE
 
 
 # ---------- Utiliser une librairie usuelle
-
-CODE
+head(TrainEch)
+TrainEch<-TrainEch[,-c(1,8,3)]
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+Train<-Train[,-c(1,8,3)]
 
 
 # Obtenir les caractéristiques statistiques de base des variables d'entrée et de sortie
@@ -97,11 +97,38 @@ CODE
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+summary(TrainEch)
+
+removeOutliers = function(x) {
+  # Get Q1 and Q3
+  qnt = quantile(x, probs=c(.25, .75))
+  
+  # Get the interquartile range time 1.5
+  iqt = 1.5 * IQR(x)
+  
+  # Apply on a copy of the original data
+  y = x
+  y[x < (qnt[1] - iqt)] = NA
+  y[x > (qnt[2] + iqt)] = NA
+  
+  # Remove incomplete cases and return the resulted variable
+  return(y[complete.cases(y)])
+}
+
+for (n in (1:ncol(TrainEch))){
+                  TrainEch=TrainEch[TrainEch[,n] %in% removeOutliers(TrainEch[,n])]
+  
+}
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+summary(Train)
+
+for (n in (1:ncol(Train))){
+  Train=Train[Train[,n] %in% removeOutliers(Train[,n])]
+  
+}
+
 
 
 # Visualiser les distributions des variables d'entrée et de sortie (histogramme, pairplot)
