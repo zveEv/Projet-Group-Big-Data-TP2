@@ -49,10 +49,11 @@ import dask.dataframe as dd
 from sklearn import preprocessing #Pour la standardisation des variables
 from sklearn import linear_model #estimation du modèle linéaire
 from sklearn.metrics import mean_squared_error #Calcul de l'érreur quadratique moyenne de prédiction
+from sklearncluster import kMeans #Réaliser un cluster avec sklearn
 
 #Librairies du package dask
 from dask_glm.estimators import LinearRegression #Regression linéaire sur un big data
-
+from dask_ml.clusters import kMeans #réaliser un kmeans sur les big data
 
 #
 # QUESTION 1 - IMPORT DU JEU DE DONNEES
@@ -186,34 +187,26 @@ var_entree_stand=preprocessing.scale(var_entree)
 var_sortie_stand=preprocessing.scale(var_sortie)
 
 
-
-
-
-
-
-
 #
 # QUESTION 3 - CLUSTERING DU JEU DE DONNEES
 # 
-
-
-
 
 ### Q3.1 - Réaliser un clustering k-means sur les données d'entrée standardisées
 
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+kmeans_model=kMeans(n_clusters=3, random_state=1).fit(var_entree_stand)
+labels=kmeans_model.labels_
+inertia=kmeans_model.inertia
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
-
-
+kmeans_dask=kMeans(n_clusters=4)
+kmeans_dask.fit_transform(var_entree_stand)
+cluster=kmeans_dask.labels
 
 ### Q3.2 - Tracer la figure de l'inertie intraclusters et du R² en fonction du nombre de  clusters
-
 
 # ---------- Utiliser une librairie usuelle
 
