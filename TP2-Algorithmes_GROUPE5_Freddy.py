@@ -42,14 +42,16 @@ import sklearn.metrics
 
 #Utilisation du package dask pour les grandes bases de données, en particulier pour notre base
 import dask
-import dask.dataframe as dd  
+import dask.dataframe as dd 
+import dask.array as da 
 
 #Importation des librairies 
 
 from sklearn import preprocessing #Pour la standardisation des variables
 from sklearn import linear_model #estimation du modèle linéaire
-from sklearn.metrics import mean_squared_error #Calcul de l'érreur quadratique moyenne de prédiction
-from sklearncluster import kMeans #Réaliser un cluster avec sklearn
+from sklearn.metrics import mean_squared_error, r2_score #Calcul de l'érreur quadratique moyenne de prédiction
+from sklearn.cluster import kMeans #Réaliser un cluster avec sklearn
+from sklearn.decomposition import PCA
 
 #Librairies du package dask
 from dask_glm.estimators import LinearRegression #Regression linéaire sur un big data
@@ -104,6 +106,7 @@ Valeur_manq = dd.concat([total, pourcentage], axis=1, keys=['Total','Pourcentage
 var_val_manq=Valeur_manq[Valeur_manq.pourcentage >= 0.4].index #Les variables ayant plus de 40 pourcent de valeurs manquantes
 
 df_ech=df_ech.drop(var_val_manq, axis=1) #Suppression de ces variables
+
 
 # Ne garder que les variables de géolocalisation (pour le jeu de données en entrée) et
 # la variable "fare_amount" pour la sortie
@@ -264,23 +267,25 @@ CODE
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+pca=PCA(n_components=6) #On va se limiter aux 6 premières composantes principales
+pca_result=pca.fit_transform(var_entree_stand)
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+dX=da.from_array(var_entree_stand, chunks=var_entree_stand.shape)
+pca=PCA(n_components=6)
+pca_result=pca.fit(dX)
 
 
 ### Q4.2 - Réaliser le diagnostic de variance avec un graphique à barre (barchart)
 
  
-
 # ---------- Utiliser une librairie usuelle
 
 
-CODE
+diag_var=pca.explained_variance_ratio_
 
-
+plt.bar(range(6), diag_var, width=0.8, color='blue')
 
 
 ### Q4.3 - Combien de composantes doit-on garder? Pourquoi?
@@ -300,8 +305,22 @@ REPONSE ECRITE (3 lignes maximum)
 # ---------- Utiliser une librairie usuelle
 
 
-CODE
+xvector = pca.components_[0] 
+yvector = pca.components_[1]
 
+xs = pca.transform(var_entree_stand)[:,0] 
+ys = pca.transform(var_entree_stand)[:,1]
+
+points_plot_index=np.random.randint(0, len(xs), 50)
+
+#Tracé du nuage de points projetés sur les deux premiers axes factoriels
+for i in points_plot_index: 
+    plt.plot(xs[i], ys[i],'bo')
+    
+#Représentation des vecteurs sur les axes factoriels  
+for i in range(len(xvector)):
+    plt.arrow(0,0,xvector[i]*max(xs)*1.2,yvector[i]*max(ys)*1.2, list(var_entree.columns.values)[i], color='r')
+plt.show()
 
 
 
@@ -309,12 +328,6 @@ CODE
 
 
 REPONSE ECRITE (3 lignes maximum)
-
-
-
-
-
-
 
 
 
@@ -332,11 +345,15 @@ REPONSE ECRITE (3 lignes maximum)
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+regr=linear_model.LinearRegression()
+regr.fit(var_entree_stand, var_sortie_stand)
+
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+lr=linearRegression()
+lr.fit(var_entree_stand, var_sortie_stand)
+
 
 
 ### Q5.2 - Que pouvez-vous dire des résultats du modèle? Quelles variables sont significatives?
