@@ -17,25 +17,50 @@ Created on Wed Feb 13 19:38:53 2019
 #
 # QUESTION 0 - IMPORTATION DES PACKAGES ET LIBRAIRIES UTILISEES PAR LA SUITE
 # 
-! pip install "dask[complete]" #installation complete du package dask
+! pip install "dask[complete]" #Pour la gestion des grands volumes de données 
+! pip install  sys
+! pip install  numpy #gestion des matrices
+! pip install  pandas #gestion et manipulation des dataframes
+! pip install  os #reading the input files we have access to
+! pip install  matplotlib.pyplot #pour faire de visualisation de données
+! pip install  seaborn #realisation des pairplots
+! pip install  sklearn #Pour la Préparation et la modélisation
+! pip install  sklearn.metrics #Pour le diagnostique du modèle
+! pip install  "dask[dataframe]" #Pour la gestion des grandes bases de données
+! pip install dask-ml
+#Importation des packages installés 
 
-import sys # getion de matrices
-import numpy as np # gestion des matrices
-import pandas as pd # gestion et manipulation des dataframes
-import os # reading the input files we have access to
-import matplotlib.pyplot as plt #pour faire de visualisation de données
-import seaborn as sns #realisation des pairplots
-from sklearn import preprocessing #standarization des valeurs
-from sklearn.cluster import KMeans #librairie du clustering non-bigdata
-from sklearn import linear_model #estimation du modele
-from sklearn.metrics import mean_squared_error #prediction du modele
-from dask import dataframe as dd
-from dask-ml.cluster import KMeans#!!incorrect
-#Pour le grands volums des données "Big Data"
-import dask 
-from dask_glm.estimators import LinearRegression
+import sys
+import numpy as np 
+import pandas as pd 
+import os 
+import matplotlib.pyplot as plt 
+import seaborn as sns
+import sklearn
+import sklearn.metrics
 
-import dask.dataframes as dd #pour importer un fichier big data, ca veut dire avec taille en Gigabytes.
+
+#Utilisation du package dask pour les grandes bases de données, en particulier pour notre base
+import dask
+import dask.dataframe as dd 
+import dask.array as da 
+
+#Importation des librairies 
+
+from sklearn import preprocessing #Pour la standardisation des variables
+from sklearn.preprocessing import StandardScaler
+from sklearn import linear_model #estimation du modèle linéaire
+from sklearn.metrics import mean_squared_error, r2_score #Calcul de l'érreur quadratique moyenne de prédiction
+from sklearn.cluster import KMeans #Réaliser un cluster avec sklearn
+from sklearn.decomposition import PCA
+from sklearn.linear_model import LogisticRegression
+from sklearn import linear_model
+
+#Librairies du package dask
+from dask_glm.estimators import LinearRegression #Regression linéaire sur un big data
+from dask_ml.clusters import kMeans #réaliser un kmeans sur les big data
+from dask_ml.decomposition import PCA
+from dask_ml.linear_model import LogisticRegression
 
 #
 # QUESTION 1 - IMPORT DU JEU DE DONNEES
@@ -57,13 +82,25 @@ dossier_trainEch='C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train
 
 # ---------- Utiliser une librairie usuelle (version de fichier échantillonnée)
 
-trainEch_df = pd.read_csv(dossier_trainEch)
+trainEch_df =  pd.read_csv(dossier_trainEch)
 trainEch_df.dtypes
 
+test_trainEch_df =  pd.read_csv(dossier_trainEch, nrows=10000)
+test_trainEch_df.dtypes
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory) (version complète du fichier)
 
 train_df = dd.read_csv(dossier_train)
 train_df.dtypes
+
+
+test_train_df =  dd.read_csv(dossier_train).head(n=20000)
+test_train_df.dtypes
+
+
+
+
+
+
 
 
 #
@@ -83,9 +120,11 @@ train_df.dtypes
 print(trainEch_df.isnull().sum())
 trainEch_df_clean = trainEch_df.dropna(how = 'any', axis = 'rows')
 
+print(test_trainEch_df.isnull().sum())
+test_trainEch_df_clean = test_trainEch_df.dropna(how = 'any', axis = 'rows')
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)!!!!!
-print(train_df.isnull().sum())
-train_df_clean = train_df.dropna(how = 'any', axis = 'rows')
+print(test_train_df.isnull().sum())
+test_train_df_clean = test_train_df.dropna(how = 'any', axis = 'rows')
 
 #je ne peux pas trouver comment supprimer valeurs manquants avec dask.
 
@@ -94,11 +133,11 @@ train_df_clean = train_df.dropna(how = 'any', axis = 'rows')
 
 
 # ---------- Utiliser une librairie usuelle
-trainEch_df_clean=trainEch_df_clean.drop(['key','pickup_datetime','passenger_count'], axis=1)
+test_trainEch_df_clean=test_trainEch_df_clean.drop(['key','pickup_datetime','passenger_count'], axis=1)
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 #le meme que librairie usuelle
-train_df_clean=train_df_clean.drop(['key','pickup_datetime','passenger_count'], axis=1)
+test_train_df_clean=test_train_df_clean.drop(['key','pickup_datetime','passenger_count'], axis=1)
 
 
 # Obtenir les caractéristiques statistiques de base des variables d'entrée et de sortie
@@ -107,7 +146,7 @@ train_df_clean=train_df_clean.drop(['key','pickup_datetime','passenger_count'], 
 
 # ---------- Utiliser une librairie usuelle
 
-trainEch_df_clean.describe()
+test_trainEch_df_clean.describe()
 
 
 #1eme solution
@@ -118,8 +157,8 @@ def outliers_iqr(ys):
     upper_bound = quartile_3 + (iqr * 1.5)
     return np.where((ys > upper_bound) | (ys < lower_bound))
 
-for var in list(trainEch_df_clean.columns.values):
-    trainEch_df_clean= test_trainEch_df_clean[~trainEch_df_clean[var].isin(list(outliers_iqr(trainEch_df_clean[var])))]
+for var in list(test_trainEch_df_clean.columns.values):
+    test_trainEch_df_clean= test_trainEch_df_clean[~test_trainEch_df_clean[var].isin(list(outliers_iqr(test_trainEch_df_clean[var])))]
 
 
 #2eme facon
@@ -133,36 +172,36 @@ def remove_outlier(df_in, col_name):
     df_out = df_in.loc[(df_in[col_name] > fence_low) & (df_in[col_name] < fence_high)]
     return df_out
 
-for var in list(trainEch_df_clean.columns.values):
-    trainEch_df_clean=remove_outlier(test_trainEch_df_clean,var)
+for var in list(test_trainEch_df_clean.columns.values):
+    test_trainEch_df_clean=remove_outlier(test_trainEch_df_clean,var)
     
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-train_df_clean.describe()
+test_train_df_clean.describe()
 
 #1er solution
-for var in list(train_df_clean.columns.values):
-    train_df_clean= test_train_df_clean[~train_df_clean[var].isin(list(outliers_iqr(train_df_clean[var])))]
+for var in list(test_train_df_clean.columns.values):
+    test_train_df_clean= test_train_df_clean[~test_train_df_clean[var].isin(list(outliers_iqr(test_train_df_clean[var])))]
 
 #2eme solution
     
-for var in list(train_df_clean.columns.values):
-    train_df_clean=remove_outlier(train_df_clean,var)    
+for var in list(test_train_df_clean.columns.values):
+    test_train_df_clean=remove_outlier(test_train_df_clean,var)    
     
 # ---------- Utiliser une librairie usuelle
 
-sns.pairplot(trainEch_df_clean)
-variables=list(trainEch_df_clean.columns.values)
+sns.pairplot(test_trainEch_df_clean)
+variables=list(test_trainEch_df_clean.columns.values)
 for var in variables:
-        trainEch_df_clean[var].plot.hist()
+        test_trainEch_df_clean[var].plot.hist()
         plt.title(var)
         plt.show()
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
-sns.pairplot(train_df_clean)
+sns.pairplot(test_train_df_clean)
 for var in variables:
-        train_df_clean[var].plot.hist()
+        test_train_df_clean[var].plot.hist()
         plt.title(var)
         plt.show()
 
@@ -174,12 +213,12 @@ inputvar=["pickup_longitude","pickup_latitude","dropoff_longitude","dropoff_lati
 # ---------- Utiliser une librairie usuelle
 
 
-X,y = trainEch_df_clean[inputvar],trainEch_df_clean["fare_amount"]
+X,y = test_trainEch_df_clean[inputvar],test_trainEch_df_clean["fare_amount"]
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
 
-X_big,y_big = train_df_clean[inputvar], train_df_clean["fare_amount"]
+X_big,y_big = test_train_df_clean[inputvar],test_train_df_clean["fare_amount"]
 
 
 # Standardiser la matrice d'entrée et les vecteurs de sortie (créer un nouvel objet)
@@ -282,7 +321,7 @@ Il serait interessant de calculer les distances en calculant la difference entre
 
 
 
-data_cluster=trainEch_df_clean[['pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude']]
+data_cluster=test_trainEch_df_clean[['pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude']]
 data_cluster['cluster'] = labels
 sample_index=np.random.randint(0, len(X_scaled), 1000)
 
@@ -306,11 +345,20 @@ plt.show()
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+pca=PCA(n_components=4)
+pca_resultat=pca.fit_transform(X_scaled)
+
+
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+dX=da.from_array(X_scaled, chunks=X_scaled.shape)
+pca=PCA(n_components=4)
+pca.fit(dX)
+
+
+print(pca.explained_variance_ratio_)
+print(pca.singular_values_)
 
 
 ### Q4.2 - Réaliser le diagnostic de variance avec un graphique à barre (barchart)
@@ -319,18 +367,16 @@ CODE
 
 # ---------- Utiliser une librairie usuelle
 
-
-CODE
-
-
-
+plt.plot(pca.explained_variance_ratio_)
+plt.xlabel('number of components')
+plt.ylabel('cumulative explained variance')
+plt.show()
 
 ### Q4.3 - Combien de composantes doit-on garder? Pourquoi?
        
 
-
-REPONSE ECRITE (3 lignes maximum)
-
+On doit garder 2. Car a partir de 2eme composante la variance diminue avec un rythme plus lent.
+autrement dit avec les deux premiers compostants on peut expliquer 80% 
 
 
 
@@ -341,23 +387,54 @@ REPONSE ECRITE (3 lignes maximum)
 
 # ---------- Utiliser une librairie usuelle
 
-
-CODE
-
+X_scaled=StandardScaler().fit_transform(X)
 
 
+x_vector=pca.components_[0]
+y_vector=pca.components_[1]
+
+xs=pca.transform(X_scaled)[:,0]
+ys=pca.transform(X_scaled)[:,1]
+
+points_plot_index=np.random.randint(0, len(xs), 1000)
+
+for i in range(len(x_vector)):
+    plt.arrow(0, 0, x_vector[i]*max(xs), y_vector[i]*max(ys), color='r', width=0.0005, head_width=0.0025)
+    plt.text(x_vector[i]*max(xs)*1.2, y_vector[i]*max(ys)*1.2, list(test_train_df_clean[inputvar].columns.values)[i], color='r')
+for i in points_plot_index:
+    plt.plot(xs[i],ys[i],'bo')
+    plt.text(xs[i]*1.2, ys[i]*1.2, list(test_train_df_clean[inputvar].index)[i], color='b')
+    
+
+plt.show()
 
 ### Q4.5 - Comment les variables initiales se situent-elles par rapport aux 2 premières CP? 
 
 
-REPONSE ECRITE (3 lignes maximum)
+les variables dropoff_longitude et dropoff_latitude sont liés entre elles et tres liés par rapport à la premiere 
+composante principale.
+
+les variables pickup longitude et pickup latitude sont en relation negative avec la composante numero deux. Alignés sur la composante numero 2.
+
+#####INUTILE
+y_binaire=np.zeros(len(y))
+y_binaire[y > y.median()]=1
+
+idx_train=np.random.rand(len(y_binaire)) < 0.8
+Xtrain=X[idx_train]
+Xtrain_scaler=StandardScaler().fit(Xtrain)
+Xtrain=Xtrain_scaler.transform(X[~idx_train])
+
+y_binaire=np.zeros(len(y))
 
 
+y_binaire=np.zeros(len(y))
+y_binaire[np.array(y > y.median())]=1
+ytrain, ytest= y_binaire[idx_train], y_binaire[~idx_train]
 
+log_reg_preacp=LogisticRegression()#modelisation
 
-
-
-
+log_reg_preacp.fit(Xtrain, ytrain)
 
 
 
@@ -444,7 +521,9 @@ REPONSE ECRITE (3 lignes maximum)
 # QUESTION 6 - REGRESSION LOGISTIQUE
 # 
 
-
+y.plot.hist()
+y.mean
+y.median
 
 ### Q6.1 - Mener une régression logisitique de la sortie "fare_amount" (après binarisation selon la médiane) 
 ###        en fonction de l'entrée (mise à l'échelle), sur tout le jeu de données
@@ -452,14 +531,23 @@ REPONSE ECRITE (3 lignes maximum)
 
 # Créer la sortie binaire 'fare_binaire' en prenant la valeur médiane de "fare_amount" comme seuil
 
+X,y = test_trainEch_df_clean[inputvar],test_trainEch_df_clean["fare_amount"]
+X_scaled=StandardScaler().fit_transform(X)
+
+
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+
+y_binaire=np.zeros(len(y))
+y_binaire[y > y.median()]=1
+
+
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+y_binaire=np.zeros(len(y))
+y_binaire[np.array(y > y.median())]=1
 
 
 # Mener la régression logistique de "fare_binaire" en fonction des entrées standardisées
@@ -467,12 +555,14 @@ CODE
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+
+log_reg=LogisticRegression()#modelisation
+log_reg.fit(X_scaled, y)
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
-
-CODE
-
+#https://dask-ml.readthedocs.io/en/latest/
+log_reg=LogisticRegression()
+log_reg.fit(X_scaled, y)
 
 
 
@@ -480,8 +570,7 @@ CODE
 
 
 
-REPONSE ECRITE (3 lignes maximum)
-
+...
 
 
 ### Q6.3 - Prédire la probabilité que la course soit plus élevée que la médiane
@@ -491,13 +580,37 @@ REPONSE ECRITE (3 lignes maximum)
 # Diviser le jeu de données initial en échantillons d'apprentissage (60% des données), validation (20%) et test (20%)
 
 
+#Xtrain, Xtest= X_scaled[idx_train], X_scaled[~idx_train]
+#ytrain, ytest= y_binaire[idx_train], y_binaire[~idx_train]
+
+
+
+idx_train=np.random.rand(len(y_binaire)) < 0.6
+Xtrain=X[idx_train]
+Xtrain_scaler=StandardScaler().fit(Xtrain)
+Xtrain=Xtrain_scaler.transform(X[~idx_train])
+
+Xtrain, Xvalidtest= X_scaled[idx_train], X_scaled[~idx_train]
+ytrain, yvalidtest= y_binaire[idx_train], y_binaire[~idx_train]
+
+idx_valid=np.random.rand(len(y_binaire)) < 0.2
+XValid=X[idx_valid]
+XValid_scaler=StandardScaler().fit(XValid)
+XValid=XValid_scaler.transform(X[~idx_valid])
+
+XValid, Xtest=X_scaled[idx_valid], X_scaled[~idx_valid]
+yvalid, ytest= y_binaire[idx_valid], y_binaire[~idx_valid]
+
 # ---------- Utiliser une librairie usuelle
 
-CODE
+regr=linear_model.LinearRegression()
+regr.fit(Xtrain, ytrain)
+
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+lr=LinearRegression()
+lr.fit(Xtrain, ytrain)
 
 
 # Réaliser la régression logistique sur l'échantillon d'apprentissage et en testant plusieurs valeurs
@@ -506,13 +619,22 @@ CODE
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+
+log_reg=LogisticRegression()#modelisation
+log_reg.fit(Xtrain, ytrain)
+
+prediction_logreg=log_reg.predict(XValid)
+pred_proba_logreg=log_reg.predict_proba(XValid)
+...
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+log_reg=LogisticRegression()#modelisation
+log_reg.fit(Xtrain, ytrain)
 
-
+prediction_biglogreg=log_reg.predict(XValid)
+log_reg.score(XValid, yvalid)#Returns the mean accuracy on the given test data and labels.
+....
 # Calculer la précision (accuracy) et l'AUC de la prédiction sur le jeu de test.
 
 
