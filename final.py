@@ -384,11 +384,26 @@ REPONSE ECRITE (3 lignes maximum)
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+def custom_split_train_test(ens, p):
+    choice = generate_dataset(len(ens), p)
+    train = [x for x, c in zip(ens, choice) if c == 1]
+    autre = [x for x, c in zip(ens, choice) if c == 0]
+    return train, autre
+
+train, autre = custom_split_train_test(ens, 0.6)  #Obtient la base d'entrainement
+test, validation= custom_split_train_test(autre, 0.5)  #Obtient la base test de de validation
+
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-CODE
+def custom_split_train_test(ens, p):
+    choice = generate_dataset(len(ens), p)
+    train = [x for x, c in zip(ens, choice) if c == 1]
+    autre = [x for x, c in zip(ens, choice) if c == 0]
+    return train, autre
+
+train, autre = custom_split_train_test(df_ech, 0.6)  #Obtient la base d'entrainement
+test, validation= custom_split_train_test(autre, 0.5)  #Obtient la base test de de validation
 
 
 # Réaliser la régression linéaire sur l'échantillon d'apprentissage, tester plusieurs valeurs
@@ -397,7 +412,7 @@ CODE
 
 # ---------- Utiliser une librairie usuelle
 
-CODE
+regr.fit
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
