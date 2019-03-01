@@ -345,7 +345,6 @@ REPONSE ECRITE (3 lignes maximum)
 
 
 
-#
 # QUESTION 5 - REGRESSION LINEAIRE
 # 
 
@@ -384,26 +383,36 @@ REPONSE ECRITE (3 lignes maximum)
 
 # ---------- Utiliser une librairie usuelle
 
-def custom_split_train_test(ens, p):
-    choice = generate_dataset(len(ens), p)
-    train = [x for x, c in zip(ens, choice) if c == 1]
-    autre = [x for x, c in zip(ens, choice) if c == 0]
-    return train, autre
+import random  #Librairie pour génerer un nombre aléatoire
 
-train, autre = custom_split_train_test(ens, 0.6)  #Obtient la base d'entrainement
-test, validation= custom_split_train_test(autre, 0.5)  #Obtient la base test de de validation
+def generate_dataset(n, t):  #Fonction qui génère un vecteur aléatoire de taille n avec une probabilité de sélection de t.
+    return [1 if random.random() < t else 0 for i in range(0,n)]
+
+def custom_split_train_test(ens, p):  #Fonction qui repartie la population en deux.
+    choice = generate_dataset(len(ens), p)
+    train = [x for x, c in zip(ens, choice) if c == 1] #Sélection d'un échantillon de taille représentant p pourcent de la population totale
+    autre = [x for x, c in zip(ens, choice) if c == 0] #Sélection d'un échantillon de taille représentant 1-p pourcent de la population totale
+    return train, autre #Restition des deux tables
+
+train, autre = custom_split_train_test(ens, 0.6)  #Obtient la base d'apprentissage et une autre base
+test, validation= custom_split_train_test(autre, 0.5)  #Obtient les base test et de validation
 
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
-def custom_split_train_test(ens, p):
-    choice = generate_dataset(len(ens), p)
-    train = [x for x, c in zip(ens, choice) if c == 1]
-    autre = [x for x, c in zip(ens, choice) if c == 0]
-    return train, autre
+import random  #Librairie pour génerer un nombre aléatoire
 
-train, autre = custom_split_train_test(df_ech, 0.6)  #Obtient la base d'entrainement
-test, validation= custom_split_train_test(autre, 0.5)  #Obtient la base test de de validation
+def generate_dataset(n, t):  #Fonction qui génère un vecteur aléatoire de taille n avec une probabilité de sélection de t.
+    return [1 if random.random() < t else 0 for i in range(0,n)]
+
+def custom_split_train_test(ens, p):  #Fonction qui repartie la population en deux.
+    choice = generate_dataset(len(ens), p)
+    train = [x for x, c in zip(ens, choice) if c == 1] #Sélection d'un échantillon de taille représentant p pourcent de la population totale
+    autre = [x for x, c in zip(ens, choice) if c == 0] #Sélection d'un échantillon de taille représentant 1-p pourcent de la population totale
+    return train, autre #Restition des deux tables
+
+train, autre = custom_split_train_test(ens, 0.6)  #Obtient la base d'apprentissage et une autre base
+test, validation= custom_split_train_test(autre, 0.5)  #Obtient les base test et de validation
 
 
 # Réaliser la régression linéaire sur l'échantillon d'apprentissage, tester plusieurs valeurs
