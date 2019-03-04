@@ -28,12 +28,10 @@ Created on Wed Feb 13 19:38:53 2019
 ! pip install  numpy #gestion des matrices
 ! pip install  pandas #gestion et manipulation des dataframes
 ! pip install  os #reading the input files we have access to
-! pip install  matplotlib.pyplot #pour faire de visualisation de données
+! pip install  matplotlib #pour faire de visualisation de données
 ! pip install  seaborn #realisation des pairplots
 ! pip install  sklearn #Pour la Préparation et la modélisation
-! pip install  sklearn.metrics #Pour le diagnostique du modèle
-! pip install  "dask[dataframe]" #Pour la gestion des grandes bases de données
-! pip install   dask-ml
+! pip install  dask-ml #Pour la modélisation avec dask
 
 #Importation des packages installés 
 
@@ -65,15 +63,19 @@ from dask_glm.estimators import LinearRegression #Regression linéaire sur un bi
 from dask_ml.clusters import kMeans #réaliser un kmeans sur les big data
 from dask_ml import preprocessing
 from dask_ml.preprocessing import StandardScaler
-from dask_ml import dask_ml.linear_model.LogisticRegression
+from dask_ml import linear_model
 
 #
 # QUESTION 1 - IMPORT DU JEU DE DONNEES
 # 
 ### Q1.1 - Indiquer le dossier et le fichier cible
 
-fich_complet= "C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train/train.csv"
-fich_echant= "C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train_echantillon.csv"
+
+
+fich_complet= 'C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train/train.csv'
+fich_echant= 'E:/Mon Master 2/Année 2018-2019/Trimestre 2/Big Data/TP2/train_echantillon.csv'
+
+
 
 ### Q1.2 - Importer les jeux de données complets et échantillonnés
 ###        Prediction du prix du taxi à New York - https://www.kaggle.com/c/new-york-city-taxi-fare-prediction/data
@@ -81,11 +83,17 @@ fich_echant= "C:/Users/lilian/Documents/M2 FOAD/Big Data/Projet Groupe/train_ech
 
 # ---------- Utiliser une librairie usuelle (version de fichier échantillonnée)
 
-df_ech=pd.read_csv(fich_echant, nrows=10000)
+
+df_ech=pd.read_table(fich_echant, sep=",", nrows=5)
+
+
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory) (version complète du fichier)
 
-df_fich_compl=dd.read_csv(fich_complet).head(n=20000)
+
+df_fich_compl=dd.read_csv(fich_complet)
+
+
 
 #
 # QUESTION 2 - PREPARATION/NETTOYAGE DU JEU DE DONNEES
@@ -95,48 +103,80 @@ df_fich_compl=dd.read_csv(fich_complet).head(n=20000)
 
 # ---------- Utiliser une librairie usuelle
 
+
+
+
 df_ech=df_ech.dropna(how='all')  #Suppression des lignes qui dont toutes les valeurs sont manquantes
 
-total = print(df_ech.isnull().sum())#Pour chaque colonnes de la table, calcul du nombre de valeurs manquantes et les classes par ordre décroissant
-pourcentage = (df_ech.isnull().sum()/df_ech.isnull().count()) #Pour chaque colonne calcul du pourcentage et les classes par ordre décroissant
-Valeur_manq = pd.concat([total, pourcentage], axis=1, keys=['Total', 'Pourcentage']) #Concatene les deux précédentes tables
+total = pd.isnull(df_ech).sum()#Pour chaque colonnes de la table, calcul du nombre de valeurs manquantes et les classes par ordre décroissant
 
-var_val_manq=Valeur_manq[Valeur_manq.Pourcentage >= 0.4].index #Les variables ayant plus de 40 pourcent de valeurs manquantes
+pourcentage = (df_ech.isnull().sum()/df_ech.isnull().count()) #Pour chaque colonne calcul du pourcentage et les classes par ordre décroissant
+Valeur_manq = pd.concat([total, pourcentage], axis=1) #Concatene les deux précédentes tables
+
+var_val_manq=Valeur_manq[Valeur_manq[Valeur.columns[1]] >= 0.4].index #Les variables ayant plus de 40 pourcent de valeurs manquantes
 
 df_ech=df_ech.drop(var_val_manq, axis=1) #Suppression de ces variables
+
+
+
              
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
+
+
 df_ech=df_ech.dropna(how='all')  #Suppression des lignes qui dont toutes les valeurs sont manquantes
 
-total = print(df_ech.isnull().sum()) #Pour chaque colonnes de la table, calcul du nombre de valeurs manquantes et les classes par ordre décroissant
-pourcentage = (df_ech.isnull().sum()/df_ech.isnull().count()) #Pour chaque colonne calcul du pourcentage et les classes par ordre décroissant
-Valeur_manq = dd.concat([total, pourcentage], axis=1, keys=['Total','Pourcentage'])
+total =df_ech.isnull().sum() #Pour chaque colonnes de la table, calcul du nombre de valeurs manquantes et les classes par ordre décroissant
+pourcentage = df_ech.isnull().sum()/df_ech.isnull().count() #Pour chaque colonne calcul du pourcentage et les classes par ordre décroissant
+Valeur_manq = da.concatenate([total, pourcentage], axis=1, keys=['Total','Pourcentage'])
 
 var_val_manq=Valeur_manq[Valeur_manq.pourcentage >= 0.4].index #Les variables ayant plus de 40 pourcent de valeurs manquantes
 
 df_ech=df_ech.drop(var_val_manq, axis=1) #Suppression de ces variables
 
 
+
+
 # Ne garder que les variables de géolocalisation (pour le jeu de données en entrée) et
 # la variable "fare_amount" pour la sortie
 
+
+
+
+
 # ---------- Utiliser une librairie usuelle
 
+
+
+
 df_ech=df_ech.drop(['key','pickup_datetime','passenger_count'], axis=1)
+
+
+
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
+
+
+
 df_ech=df_ech.drop(['key','pickup_datetime','passenger_count'], axis=1)
 
+
+
+
 # Obtenir les caractéristiques statistiques de base des variables d'entrée et de sortie
-# (par exemple, min, moyenne, mdéiane, max) et filter les valeurs aberrantes
+# (par exemple, min, moyenne, médiane, max) et filter les valeurs aberrantes
+
 
 # ---------- Utiliser une librairie usuelle
 
+
 df_ech.describe()
 
+
 #Calcul des valeurs aberrantes et suppression
+
+
 
 def remove_outlier(df_in, col_name):
     q1 = df_in[col_name].quantile(0.25)
@@ -152,6 +192,8 @@ for var in list(df_ech.columns.values):
 
     
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+    
+    
 
 df_ech.describe()
 
@@ -168,11 +210,15 @@ def remove_outlier(df_in, col_name):
 
 for var in list(df_ech.columns.values):
     df_ech=remove_outlier(df_ech,var)
+    
+    
 
 
 # Visualiser les distributions des variables d'entrée et de sortie (histogramme, pairplot)
+    
 
 # ---------- Utiliser une librairie usuelle
+    
 
 sns.pairplot(df_ech)
 variables=list(df_ech.columns.values)
@@ -180,18 +226,27 @@ for var in variables:
         df_ech[var].plot.hist()
         plt.title(var)
         plt.show()
+        
+        
+        
               
 # Séparer la variable à prédire ("fare_amount") des autres variables d'entrée
 # Créer un objet avec variables d'entrée et un objet avec valeurs de sortie (i.e. "fare_amount")
         
+        
+        
 inputvar=["pickup_longitude","pickup_latitude","dropoff_longitude","dropoff_latitude"]
 
+
+
 # ---------- Utiliser une librairie usuelle
+
 
 X,Y = df_ech[inputvar],df_ech["fare_amount"]
 
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+
 
 X,Y = df_ech[inputvar],df_ech["fare_amount"]
 
@@ -221,13 +276,19 @@ var_sortie_stand=preprocessing.StandardScaler(Y)
 
 # ---------- Utiliser une librairie usuelle
 
+
+
 for k in range (1, 10): 
     kmeans_model=KMeans(n_clusters=k, random_state=1).fit(var_entree_stand)
     labels=kmeans_model.labels_
     inertia=kmeans_model.inertia_
     print("Nombre des clusters : " + str(k) + "- inertie : " + str(inertia))
+    
+    
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+    
+    
 
 for k in range (1, 10):
     kmeans_dask = KMeans(n_clusters= k)
@@ -236,10 +297,13 @@ for k in range (1, 10):
     inertia=kmeans_dask.inertia_
     print("Nombre des clusters : " + str(k) + "- inertie : " + str(inertia))
     
+    
 
 ### Q3.2 - Tracer la figure de l'inertie intraclusters et du R² en fonction du nombre de  clusters
 
 # ---------- Utiliser une librairie usuelle
+    
+    
 
 def trace_inertie (n): 
     t=[]
@@ -252,6 +316,9 @@ def trace_inertie (n):
     num=np.array(num) #Vecteur de nombres
     plt.plot(num, inertie) #Tracé de la courbe
     plt.show() #Présentation de la courbe
+    
+    
+    
     
 #pour qui def ?
 
@@ -269,6 +336,8 @@ le nombre optimal des clusters est 4, puisque à partir de ce nombre l''inertie(
 
 ### Q3.4 - Comment pouvez-vous qualifier les clusters obtenus selon les variables originales?
 ###        Par exemple, y a-t-il des clusters selon la localisation ? 
+
+
 
 En regardant la reponse à la Question No5. Tous les clusters dependent de la localisation.
 Les clusters obtenus comportent des caracteristiques homogenes basés sur la localisation.
@@ -294,10 +363,6 @@ plt.show() #Présentation de la courbe
 
 
 
-
-
-
-
 #
 # QUESTION 4 - ANALYSE EN COMPOSANTES PRINCIPALES (ACP) POUR SIMPLIFIER LE JEU DE DONNEES
 # 
@@ -309,14 +374,22 @@ plt.show() #Présentation de la courbe
 
 # ---------- Utiliser une librairie usuelle
 
-pca=PCA(n_components=4) #On va se limiter aux 6 premières composantes principales
+
+
+pca=PCA(n_components=4) #On va se limiter aux 4 premières composantes principales
 pca_result=pca.fit_transform(var_entree_stand)
 
+
+
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+
+
 
 dX=da.from_array(var_entree_stand, chunks=var_entree_stand.shape)
 pca=PCA(n_components=4)
 pca_result=pca.fit(dX)
+
+
 
 
 ### Q4.2 - Réaliser le diagnostic de variance avec un graphique à barre (barchart)
@@ -344,8 +417,6 @@ autrement dit avec les deux premiers compostants on peut expliquer 80%
  
 
 # ---------- Utiliser une librairie usuelle
-
-
 
 
 
@@ -392,14 +463,22 @@ les variables pickup longitude et pickup latitude sont en relation negative avec
 
 # ---------- Utiliser une librairie usuelle
 
+
+
 regr=linear_model.LinearRegression()
 regr.fit(var_entree_stand, var_sortie_stand)
 
 
+
+
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+
+
 
 lr=LinearRegression()
 lr.fit(var_entree_stand, var_sortie_stand)
+
+
 
 
 ### Q5.2 - Que pouvez-vous dire des résultats du modèle? Quelles variables sont significatives?
@@ -418,6 +497,8 @@ REPONSE ECRITE (3 lignes maximum)
 
 # ---------- Utiliser une librairie usuelle
 
+
+
 import random  #Librairie pour génerer un échantillon aléatoire
 
 idx_train=np.random.rand(len(df_ech.index)) < 0.6
@@ -428,7 +509,11 @@ idx_valid=np.random.rand(len(Xvalidtest.index)) < 0.5
 XValid, Xtest=Xvalidtest[idx_valid], Xvalidtest[~idx_valid]
 yvalid, ytest= yvalidtest[idx_valid], yvalidtest[~idx_valid]
 
+
+
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+
+
 
 from dask.array import random  #Librairie pour génerer un nombre aléatoire
 
@@ -449,6 +534,8 @@ yvalid, ytest= yvalidtest[idx_valid], yvalidtest[~idx_valid]
 
 # ---------- Utiliser une librairie usuelle
 
+
+
 X_train_scaled=preprocessing.scale(train[inputvar]) #Standardisation des données d'entree de la base d'apprentissage
 Y_train_scaled=preprocessing.scale(train['fare_amount'])  #Standardisation des données de sortie de la base d'apprentissage
 
@@ -468,6 +555,8 @@ confusion_mat=confusion_matrix(Y_valid_scaled, prediction_valid)
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
+
+
 X_train_scaled=dask_ml.preprocessing.scale(train[inputvar]) #Standardisation des données d'entree de la base d'apprentissage
 Y_train_scaled=dask_ml.preprocessing.scale(train['fare_amount'])  #Standardisation des données de sortie de la base d'apprentissage
 
@@ -477,27 +566,36 @@ lr.fit(X_train_scaled, Y_train_scaled)
 prediction_valid=lr.predict(X_valid_scaled)
 confusion_mat=confusion_matrix(Y_valid_scaled, prediction_valid)
 
+
+
 # Calculer le RMSE et le R² sur le jeu de test.
 
 
 # ---------- Utiliser une librairie usuelle
+
+
 
 prediction_lm=regr.predict(X_train_scaled)
 
 print ('Erreur (RMS) : %.2f' %mean_squared_error(Y_train_scaled, prediction_lm))
 print ('Variance de score : %.2f' %r2_score(Y_train_scaled, prediction_lm))
 
+
+
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+
+
 
 prediction_biglm=lr.predict(X_train_scaled)
 print ('Erreur (RMS) : %.2f' %mean_squared_error(Y_train_scaled, prediction_biglm))
 print ('Variance de score : %.2f' %r2_score(Y_train_scaled, prediction_biglm))
 
+
+
 # Quelle est la qualité de la prédiction sur le jeu de test ?
 
 
 REPONSE ECRITE (3 lignes maximum)
-
 
 
 
@@ -520,13 +618,21 @@ REPONSE ECRITE (3 lignes maximum)
 
 # ---------- Utiliser une librairie usuelle
 
+
+
 Y_binaire=np.zeros(len(Y))
 Y_binaire[Y > Y.median()]=1
 
+
+
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+
+
 
 Y_binaire=dask.array.zeros(len(Y))
 Y_binaire[dask.array(Y > Y.median())]=1
+
+
 
 
 # Mener la régression logistique de "fare_binaire" en fonction des entrées standardisées
@@ -534,8 +640,12 @@ Y_binaire[dask.array(Y > Y.median())]=1
 
 # ---------- Utiliser une librairie usuelle
 
+
+
 log_reg=LogisticRegression()
 log_reg.fit(var_entree_stand, Y_binaire)
+
+
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
@@ -562,6 +672,8 @@ REPONSE ECRITE (3 lignes maximum)
 
 
 # ---------- Utiliser une librairie usuelle
+
+
 
 import random  #Librairie pour génerer un nombre aléatoire
 
@@ -592,7 +704,7 @@ def custom_split_train_test(ens, p):  #Fonction qui repartie la population en de
     choice = generate_dataset(len(ens), p)
     train = [x for x, c in zip(ens, choice) if c == 1] #Sélection d'un échantillon de taille représentant p pourcent de la population totale
     autre = [x for x, c in zip(ens, choice) if c == 0] #Sélection d'un échantillon de taille représentant 1-p pourcent de la population totale
-    return train, autre #Restition des deux tables
+    return train, autre #Restitution des deux tables
 
 train, autre = custom_split_train_test(df_ech, 0.6)  #Obtient la base d'apprentissage et une autre base
 test, validation= custom_split_train_test(autre, 0.5)  #Obtient les base test et de validation
@@ -603,6 +715,8 @@ test, validation= custom_split_train_test(autre, 0.5)  #Obtient les base test et
 
 
 # ---------- Utiliser une librairie usuelle
+
+
 
 X_train_scaled=preprocessing.scale(train[inputvar]) #Standardisation des données d'entree de la base d'apprentissage
 Y_train=train['fare_amount']
@@ -619,11 +733,14 @@ log_reg.fit(X_train_scaled, Y_train_binaire)
 prediction_logreg=log_reg.predict(X_valid_scaled)
 pred_proba_logreg=log_reg.predict_proba(Y_valid_binaire)
 
+
+
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+
+
 
 X_train_scaled=dask_ml.preprocessing.scale(train[inputvar]) #Standardisation des données d'entree de la base d'apprentissage
 X_valid_scaled=dask_ml.preprocessing.scale(validation[inputvar]) #Standardisation des données d'entree de la base de validation
-
 
 
 blog_reg=dask_ml.linear_model.LogisticRegression()
@@ -639,6 +756,8 @@ pred_proba_logreg=blog_reg.predict_proba(Y_valid_binaire)
 
 
 # ---------- Utiliser une librairie usuelle
+
+
 
 from sklearn.metrics import accuracy_score
 accuracy_score(Y_train_binaire, prediction_logreg) 
@@ -657,7 +776,11 @@ ylabel="True Positive Rate",
 )
 ax.legend();
 
+
+
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
+
+
 
 from dask_ml.metrics import accuracy_score 
 accuracy_score(Y_train_scaled, prediction_logreg) 
