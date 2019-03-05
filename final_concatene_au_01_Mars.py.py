@@ -110,10 +110,10 @@ df_ech=df_ech.dropna(how='all')  #Suppression des lignes qui dont toutes les val
 
 total = pd.isnull(df_ech).sum()#Pour chaque colonnes de la table, calcul du nombre de valeurs manquantes et les classes par ordre décroissant
 
-pourcentage = (df_ech.isnull().sum()/df_ech.isnull().count()) #Pour chaque colonne calcul du pourcentage et les classes par ordre décroissant
+pourcentage = df_ech.isnull().sum()/df_ech.isnull().count() #Pour chaque colonne calcul du pourcentage et les classes par ordre décroissant
 Valeur_manq = pd.concat([total, pourcentage], axis=1) #Concatene les deux précédentes tables
 
-var_val_manq=Valeur_manq[Valeur_manq[Valeur.columns[1]] >= 0.4].index #Les variables ayant plus de 40 pourcent de valeurs manquantes
+var_val_manq=Valeur_manq[Valeur_manq[Valeur_manq.columns[1]] >= 0.4].index #Les variables ayant plus de 40 pourcent de valeurs manquantes
 
 df_ech=df_ech.drop(var_val_manq, axis=1) #Suppression de ces variables
 
@@ -126,11 +126,11 @@ df_ech=df_ech.drop(var_val_manq, axis=1) #Suppression de ces variables
 
 df_ech=df_ech.dropna(how='all')  #Suppression des lignes qui dont toutes les valeurs sont manquantes
 
-total =df_ech.isnull().sum() #Pour chaque colonnes de la table, calcul du nombre de valeurs manquantes et les classes par ordre décroissant
-pourcentage = df_ech.isnull().sum()/df_ech.isnull().count() #Pour chaque colonne calcul du pourcentage et les classes par ordre décroissant
+total =df_ech.isnull().sum().compute() #Pour chaque colonnes de la table, calcul du nombre de valeurs manquantes et les classes par ordre décroissant
+pourcentage = (df_ech.isnull().sum()/df_ech.isnull().count()).compute() #Pour chaque colonne calcul du pourcentage et les classes par ordre décroissant
 Valeur_manq = da.concatenate([total, pourcentage], axis=1, keys=['Total','Pourcentage'])
 
-var_val_manq=Valeur_manq[Valeur_manq.pourcentage >= 0.4].index #Les variables ayant plus de 40 pourcent de valeurs manquantes
+var_val_manq=Valeur_manq[Valeur_manq[Valeur_manq.columns[1]] >= 0.4].index #Les variables ayant plus de 40 pourcent de valeurs manquantes
 
 df_ech=df_ech.drop(var_val_manq, axis=1) #Suppression de ces variables
 
@@ -149,7 +149,7 @@ df_ech=df_ech.drop(var_val_manq, axis=1) #Suppression de ces variables
 
 
 
-df_ech=df_ech.drop(['key','pickup_datetime','passenger_count'], axis=1)
+df_ech=df_ech.drop(columns=['key','pickup_datetime','passenger_count'])
 
 
 
@@ -195,13 +195,17 @@ for var in list(df_ech.columns.values):
     
     
 
-df_ech.describe()
+
+dd.from_pandas(df_ech).describe().score.to_frame().compute().T
+
+
+
 
 #Calcul des valeurs aberrantes et suppression
 
 def remove_outlier(df_in, col_name):
-    q1 = df_in[col_name].quantile(0.25)
-    q3 = df_in[col_name].quantile(0.75)
+    q1 = df_in[col_name].quantile(0.25).cumpute()
+    q3 = df_in[col_name].quantile(0.75).compute()
     iqr = q3-q1 #Interquartile range
     fence_low  = q1-1.5*iqr
     fence_high = q3+1.5*iqr
@@ -255,16 +259,16 @@ X,Y = df_ech[inputvar],df_ech["fare_amount"]
 # ---------- Utiliser une librairie usuelle
 
 
-var_entree_stand=preprocessing.scale(X)
-var_sortie_stand=preprocessing.scale(Y)
+var_entree_stand=sklearn.preprocessing.scale(X)
+var_sortie_stand=sklearn.preprocessing.scale(Y)
 
 
 # ---------- Utiliser une librairie 'Big Data' (Dask ou bigmemory)
 
 
 
-var_entree_stand=preprocessing.StandardScaler(X)
-var_sortie_stand=preprocessing.StandardScaler(Y)
+var_entree_stand=dask_ml.preprocessing.StandardScaler(X)
+var_sortie_stand=dask_ml.preprocessing.StandardScaler(Y)
 
 
 #
@@ -350,6 +354,8 @@ Il serait interessant de calculer les distances en calculant la difference entre
 
 
 # ---------- Utiliser une librairie usuelle
+
+
 
 
 data_cluster=df_ech[['pickup_longitude', 'pickup_latitude', 'dropoff_longitude', 'dropoff_latitude']] #Sélection de la table avec les variables de localisation
@@ -503,7 +509,7 @@ import random  #Librairie pour génerer un échantillon aléatoire
 
 idx_train=np.random.rand(len(df_ech.index)) < 0.6
 Xtrain, Xvalidtest= X[idx_train], X[~idx_train]
-ytrain, yvalidtest= Y[idx_train], Y[~idx_train]
+ytrain, yvalidtest= Y[idx_train], Y[~idx_train] 
 
 idx_valid=np.random.rand(len(Xvalidtest.index)) < 0.5
 XValid, Xtest=Xvalidtest[idx_valid], Xvalidtest[~idx_valid]
